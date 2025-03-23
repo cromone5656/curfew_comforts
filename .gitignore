@@ -1,0 +1,15 @@
+# Ignore environment files
+.env
+
+# Ignore Composer dependencies
+vendor/
+
+# Ignore DDEV and PHPMyAdmin
+.ddev/.importdb
+.ddev/docker-compose.*
+.ddev/.global_commands
+
+# Ignore system files
+*.log
+.idea/
+.DS_Store
