@@ -27,7 +27,7 @@ jobs:
         touch ~/.ssh/known_hosts  # Explicitly create the file if not existing
         chmod 644 ~/.ssh/known_hosts  # Ensure correct permissions for known_hosts file
         ls -al ~/.ssh  # Debug: List files after creating known_hosts
-        ssh-keyscan -H ec2-3-224-251-132.compute-1.amazonaws.com >> ~/.ssh/known_hosts
+        ssh-keyscan -H -t rsa ec2-3-224-251-132.compute-1.amazonaws.com >> ~/.ssh/known_hosts
         chmod 644 ~/.ssh/known_hosts  # Ensure correct permissions for known_hosts file
 
     - name: Deploy to EC2 (Main)
