@@ -3,7 +3,7 @@
   <section id="intro">
     <h1>Welcome to Curfew Comforts!</h1>
     <p>Your go-to spot for delicious and comforting recipes.</p>
-    <p>Explore our collection of home-cooked meals that will warm your heart!</p>
+    <p>Explore our awesome collection of home-cooked meals that will warm your heart!</p>
   </section>
 
   <!-- Featured Recipes Section -->
