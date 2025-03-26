@@ -17,21 +17,19 @@ jobs:
     - name: Set up SSH key for deployment
       uses: webfactory/ssh-agent@v0.5.3
       with:
-          ssh-private-key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+        ssh-private-key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
 
     - name: Ensure known_hosts is set up
       run: |
         mkdir -p ~/.ssh
         chmod 700 ~/.ssh  # Ensure correct permissions for the .ssh folder
-        touch ~/.ssh/known_hosts
-        chmod 644 ~/.ssh/known_hosts  # Ensure correct permissions for known_hosts file
         ssh-keyscan -H ec2-3-224-251-132.compute-1.amazonaws.com >> ~/.ssh/known_hosts
-
+        chmod 644 ~/.ssh/known_hosts  # Ensure correct permissions for known_hosts file
         
     - name: Deploy to EC2 (Main)
       if: github.ref == 'refs/heads/main'
       run: |
-        ssh ubuntu@ec2-3-224-251-132.compute-1.amazonaws.com << 'EOF'
+        ssh -o StrictHostKeyChecking=no ubuntu@ec2-3-224-251-132.compute-1.amazonaws.com << 'EOF'
           cd /var/www/html/prod
           git fetch origin main
           git checkout main
@@ -43,7 +41,7 @@ jobs:
     - name: Deploy to EC2 (Staging)
       if: github.ref == 'refs/heads/staging'
       run: |
-        ssh ubuntu@ec2-3-224-251-132.compute-1.amazonaws.com << 'EOF'
+        ssh -o StrictHostKeyChecking=no ubuntu@ec2-3-224-251-132.compute-1.amazonaws.com << 'EOF'
           cd /var/www/html/staging
           git fetch origin staging
           git checkout staging
