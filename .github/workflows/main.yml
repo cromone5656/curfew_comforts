@@ -30,6 +30,10 @@ jobs:
         ssh-keyscan -H -t rsa ec2-3-224-251-132.compute-1.amazonaws.com >> ~/.ssh/known_hosts
         chmod 644 ~/.ssh/known_hosts  # Ensure correct permissions for known_hosts file
 
+    - name: Test SSH connection (Debug)
+      run: |
+        ssh -v -o StrictHostKeyChecking=no ubuntu@ec2-3-224-251-132.compute-1.amazonaws.com 'echo "SSH connection successful"'
+
     - name: Deploy to EC2 (Main)
       if: github.ref == 'refs/heads/main'
       run: |
