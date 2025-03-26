@@ -22,7 +22,7 @@ jobs:
     - name: Deploy to EC2 (Main)
       if: github.ref == 'refs/heads/main'
       run: |
-        ssh ubuntu@3.224.251.132 << 'EOF'
+        ssh ubuntu@ec2-3-224-251-132.compute-1.amazonaws.com << 'EOF'
           cd /var/www/html/prod
           git fetch origin main
           git checkout main
@@ -34,7 +34,7 @@ jobs:
     - name: Deploy to EC2 (Staging)
       if: github.ref == 'refs/heads/staging'
       run: |
-        ssh ubuntu@3.224.251.132 << 'EOF'
+        ssh ubuntu@ec2-3-224-251-132.compute-1.amazonaws.com << 'EOF'
           cd /var/www/html/staging
           git fetch origin staging
           git checkout staging
