@@ -27,6 +27,15 @@ class RecipeSeeder extends AbstractSeed
                 'category' => 'Beverages',
                 'created_at' => date('2025-03-23 17:03:39'),
             ],
+            [
+                'featured' => 1,
+                'description' => '',
+                'name' => 'Quick Cranberry Punch',
+                'ingredients' => '2 cans (6-ounces each) frizen lemonade concentrate, thawed\n 1 1/3 C cold water\n 2 bottles (32-ounces each) cranberry juice cocktail, chilled\n 4 cans (12-ounces each) ginger-ale, chilled\n Ice ring or Ice',
+                'instructions' => 'Mix lemonade concentrate and water in large pitcher. Stir in cranberry juice cocktail. Just before serving, stir in ginger-ale. Pour into large punch bowl. Add ice Ring. Yield: 24 servings\n Note: Festive ice ring: fill a ring mold or bundt cake pan with crushed ice (smaller than your punch bowl). Cut fruit (lemons, limes, oranges, and starfruit) and 1/4-inch slices; arrange in the ice so the fruit sticks up above the top of the ring mold. Freeze overnight until solid. When ready to serve, run hot water over bottom or the mold to loosen the ice. Float in punch',
+                'category' => 'Beverages',
+                'created_at' => date('2025-03-25 19:05:00'),
+            ],
         ];
 
         foreach ($data as $recipe) {
