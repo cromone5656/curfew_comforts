@@ -72,8 +72,8 @@ jobs:
           composer install
           
           # Run migrations and seeding
-          php vendor/bin/phinx migrate -e staging
-          php vendor/bin/phinx seed:run -e staging
+          php vendor/bin/phinx migrate -e production
+          php vendor/bin/phinx seed:run -e production
           
           sudo systemctl restart nginx
         EOF
