@@ -38,11 +38,21 @@ jobs:
       if: github.ref == 'refs/heads/main'
       run: |
         ssh -vvv -o StrictHostKeyChecking=no ubuntu@ec2-3-224-251-132.compute-1.amazonaws.com << 'EOF'
+          export DB_HOST=${{ secrets.DB_HOST }}
+          export DB_NAME=${{ secrets.DB_NAME }}
+          export DB_USER=${{ secrets.DB_USER }}
+          export DB_PASS=${{ secrets.DB_PASS }}
+          
           cd /var/www/html/prod
           git fetch origin main
           git checkout main
           git pull origin main
           composer install
+          
+          # Run migrations and seeding
+          php vendor/bin/phinx migrate -e production
+          php vendor/bin/phinx seed:run -e production
+          
           sudo systemctl restart nginx
         EOF
 
@@ -50,10 +60,20 @@ jobs:
       if: github.ref == 'refs/heads/staging'
       run: |
         ssh -vvv -o StrictHostKeyChecking=no ubuntu@ec2-3-224-251-132.compute-1.amazonaws.com << 'EOF'
+          export DB_HOST=${{ secrets.DB_HOST }}
+          export DB_NAME=${{ secrets.DB_NAME }}
+          export DB_USER=${{ secrets.DB_USER }}
+          export DB_PASS=${{ secrets.DB_PASS }}
+          
           cd /var/www/html/staging
           git fetch origin staging
           git checkout staging
           git pull origin staging
           composer install
+          
+          # Run migrations and seeding
+          php vendor/bin/phinx migrate -e staging
+          php vendor/bin/phinx seed:run -e staging
+          
           sudo systemctl restart nginx
         EOF
