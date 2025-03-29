@@ -1,113 +1,178 @@
 <?php
+
+declare(strict_types=1);
+
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', '1');
 
-// Include Composer's autoloader
+// ======================
+// Initial Setup
+// ======================
+
+// Load dependencies
 require_once __DIR__ . '/../vendor/autoload.php';
+require_once(__DIR__ . '/../config/Database.php');
 
-// Load the .env file for environment variables
+// Environment setup
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
 $dotenv->load();
 
-// Include the Database configuration class
-require_once(__DIR__ . '/../config/Database.php');
-
-// Create a new instance of the Database class
-$database = new Database();
-
-// Get the database connection
-$dbh = $database->connect();
-
-// Set the page title (default to the landing page title)
-$title = "Welcome to Curfew Comforts";
-
-// Routing: Check if a page is requested (default to 'landing' if no page is provided)
-$page = $_GET['page'] ?? 'landing'; // Default to 'landing' page if not set
-
-// Handle displaying individual recipe
-if ($page === 'recipe' && isset($_GET['id'])) {
-    // Use a controller to handle fetching the recipe
-    require_once(__DIR__ . '/../controllers/RecipeController.php');
-    $controller = new RecipeController($dbh);
-    $recipe = $controller->show($_GET['id']); // Fetch the recipe
-
-    // If the recipe is not found, we'll set a different title
-    if (!$recipe) {
-        $title = "Recipe Not Found";
-    } else {
-        $title = $recipe['name'];
-    }
+// Database connection
+try {
+    $database = new Database();
+    $dbh = $database->connect();
+} catch (PDOException $e) {
+    die("Database connection failed: " . $e->getMessage());
 }
 
-// Fetch categories from the database for the filter
-$categoryStmt = $dbh->query("SELECT DISTINCT category FROM recipes");
-$categories = $categoryStmt->fetchAll(PDO::FETCH_ASSOC);
+// ======================
+// Configuration
+// ======================
+const DEFAULT_PAGE = 'landing';
+const FEATURED_RECIPES_LIMIT = 6;
 
-// Query for landing page (Featured Recipes)
-$featuredStmt = $dbh->query("SELECT * FROM recipes WHERE featured = 1 LIMIT 6");
-$featuredRecipes = $featuredStmt->fetchAll(PDO::FETCH_ASSOC);
+// ======================
+// Security Functions
+// ======================
+function sanitizeInput(string $input): string
+{
+    return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
+}
 
-// Search and Filter Query for All Recipes Page
-if ($page === 'all_recipes') {
-    $sql = "SELECT * FROM recipes";
+// ======================
+// Routing & Logic
+// ======================
+$page = isset($_GET['page']) ? sanitizeInput($_GET['page']) : DEFAULT_PAGE;
+$title = "Welcome to Curfew Comforts";
+$viewData = [];
 
-    // Handle search term if provided
-    if (isset($_GET['search']) && !empty($_GET['search'])) {
-        $searchTerm = '%' . $_GET['search'] . '%'; // Add wildcard for partial matching
-        $sql .= " WHERE name LIKE :searchTerm";
-    }
+try {
+    // Handle Recipe Page
+    if ($page === 'recipe' && isset($_GET['id'])) {
+        require_once(__DIR__ . '/../controllers/RecipeController.php');
+        $controller = new RecipeController($dbh);
+        $recipeId = filter_var($_GET['id'], FILTER_VALIDATE_INT);
 
-    // Handle category filter if provided
-    if (isset($_GET['category']) && !empty($_GET['category'])) {
-        $category = $_GET['category'];
-        if (isset($searchTerm)) {
-            $sql .= " AND category = :category";
+        if (!$recipeId) {
+            throw new InvalidArgumentException("Invalid recipe ID");
+        }
+
+        // Handle Form Submissions
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (isset($_POST['comment'])) {
+                $success = $controller->storeComment(
+                    $recipeId,
+                    [
+                        'user_name' => sanitizeInput($_POST['user_name'] ?? ''),
+                        'content' => sanitizeInput($_POST['content'] ?? '')
+                    ]
+                );
+                if ($success) {
+                    header("Location: ?page=recipe&id=$recipeId");
+                    exit;
+                }
+            } elseif (isset($_GET['action']) && $_GET['action'] === 'like_comment') {
+                if (isset($_POST['user_name'], $_GET['comment_id'])) {
+                    $commentId = filter_var($_GET['comment_id'], FILTER_VALIDATE_INT);
+                    $userName = sanitizeInput($_POST['user_name']);
+                    if ($commentId) {
+                        $controller->handleLike($commentId, $userName);
+                    }
+                }
+                header("Location: ?page=recipe&id=$recipeId");
+                exit;
+            }
+        }
+
+        // Fetch Recipe Data
+        $data = $controller->show($recipeId);
+        if (empty($data['recipe'])) {
+            $title = "Recipe Not Found";
         } else {
-            $sql .= " WHERE category = :category";
+            $title = sanitizeInput($data['recipe']['name']);
+            $viewData = [
+                'recipe' => $data['recipe'],
+                'comments' => $data['comments']
+            ];
         }
     }
 
-    // Prepare the query for recipes
-    $stmt = $dbh->prepare($sql);
+    // Handle All Recipes Page
+    if ($page === 'all_recipes') {
+        $searchTerm = isset($_GET['search']) ? sanitizeInput($_GET['search']) : null;
+        $category = isset($_GET['category']) ? sanitizeInput($_GET['category']) : null;
 
-    // Bind parameters for search and category filters if they exist
-    if (isset($searchTerm)) {
-        $stmt->bindParam(':searchTerm', $searchTerm, PDO::PARAM_STR);
+        $sql = "SELECT * FROM recipes";
+        $params = [];
+        $conditions = [];
+
+        if ($searchTerm) {
+            $conditions[] = "name LIKE :search";
+            $params[':search'] = "%$searchTerm%";
+        }
+        if ($category) {
+            $conditions[] = "category = :category";
+            $params[':category'] = $category;
+        }
+        if (!empty($conditions)) {
+            $sql .= " WHERE " . implode(" AND ", $conditions);
+        }
+
+        $stmt = $dbh->prepare($sql);
+        $stmt->execute($params);
+        $viewData['recipes'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
-    if (isset($category)) {
-        $stmt->bindParam(':category', $category, PDO::PARAM_STR);
+
+    // Handle Landing Page
+    if ($page === 'landing') {
+        try {
+            $viewData['featuredRecipes'] = [];
+            $stmt = $dbh->prepare("
+                SELECT id, name, description 
+                FROM recipes 
+                WHERE featured = 1 
+                ORDER BY created_at DESC 
+                LIMIT :limit
+            ");
+            $stmt->bindValue(':limit', FEATURED_RECIPES_LIMIT, PDO::PARAM_INT);
+            $stmt->execute();
+            $viewData['featuredRecipes'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Featured recipes error: " . $e->getMessage());
+            $viewData['error'] = "Couldn't load featured recipes: " . $e->getMessage();
+        }
     }
 
-    // Execute the query
-    $stmt->execute();
-
-    // Fetch all recipes for the All Recipes page
-    $recipes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // Common Data
+    $categories = $dbh->query("SELECT DISTINCT category FROM recipes")
+        ->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    error_log("Database error: " . $e->getMessage());
+    $viewData['error'] = "A database error occurred";
+} catch (Exception $e) {
+    error_log("General error: " . $e->getMessage());
+    $viewData['error'] = "An unexpected error occurred";
 }
 
-// Include the header view
+// ======================
+// View Rendering
+// ======================
 include('../views/header.php');
 
-// Include the content/view depending on the page
 switch ($page) {
     case 'recipe':
-        // If recipe exists, display the recipe page
-        include('../views/recipe.php');
+        isset($viewData['recipe']) ? include('../views/recipe.php') : include('../views/404.php');
         break;
-
     case 'all_recipes':
-        // Show all recipes with search and filters
         include('../views/all_recipes.php');
         break;
     case 'about':
-        include('../views/about.php'); // Include the About page view
+        include('../views/about.php');
         break;
     case 'landing':
     default:
-        // Show the landing page with featured recipes
         include('../views/landing.php');
         break;
 }
 
-// Include the footer view
 include('../views/footer.php');

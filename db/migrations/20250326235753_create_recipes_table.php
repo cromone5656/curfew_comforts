@@ -8,14 +8,25 @@ final class CreateRecipesTable extends AbstractMigration
 {
     public function up(): void
     {
-        // Drop the table if it already exists
         if ($this->hasTable('recipes')) {
             $this->table('recipes')->drop()->save();
         }
 
-        // Create the table again
-        $table = $this->table('recipes');
-        $table->addColumn('featured', 'boolean', ['default' => false])
+        // Disable Phinx's auto-id and define primary key explicitly
+        $table = $this->table('recipes', [
+            'id' => false,          // Disable auto-added 'id'
+            'primary_key' => ['id'] // Manually define 'id' as primary key
+        ]);
+
+        $table->addColumn('id', 'integer', [
+            'identity' => true,     // Auto-increment
+            'signed' => false,      // UNSIGNED
+            'null' => false
+        ])
+            ->addColumn('featured', 'boolean', [
+                'default' => false,
+                'null' => false // Add this line
+            ])
             ->addColumn('description', 'text')
             ->addColumn('name', 'string', ['limit' => 255])
             ->addColumn('ingredients', 'text')
@@ -27,7 +38,6 @@ final class CreateRecipesTable extends AbstractMigration
 
     public function down(): void
     {
-        // Drop the table in down method
         if ($this->hasTable('recipes')) {
             $this->table('recipes')->drop()->save();
         }
