@@ -1,35 +1,23 @@
 <div class="all-recipes-container">
     <h1>All Recipes</h1>
 
-    <form method="GET" class="search-filter">
-        <input type="hidden" name="page" value="all_recipes">
-
-        <div class="search-group">
-            <input type="search" name="search" placeholder="Search recipes..."
-                value="<?= htmlspecialchars($_GET['search'] ?? '') ?>">
-            <button type="submit">🔍 Search</button>
-        </div>
-
-        <div class="filter-group">
-            <label for="category">Filter by Category:</label>
-            <select name="category">
-                <option value="">All Categories</option>
-                <?php foreach ($categories as $category): ?>
-                    <option value="<?= htmlspecialchars($category['category']) ?>"
-                        <?= (($_GET['category'] ?? '') === $category['category']) ? 'selected' : '' ?>>
-                        <?= htmlspecialchars($category['category']) ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-        </div>
-    </form>
+    <!-- ... (search form remains the same) ... -->
 
     <?php if (isset($viewData['error'])): ?>
-        <div class="error-message"><?= htmlspecialchars($viewData['error']) ?></div>
+        <!-- ... (error message remains the same) ... -->
     <?php elseif (!empty($viewData['recipes'])): ?>
         <div class="recipe-grid">
             <?php foreach ($viewData['recipes'] as $recipe): ?>
                 <article class="recipe-card">
+                    <!-- Add image container here -->
+                    <?php if (!empty($recipe['image_url'])): ?>
+                        <img src="<?= htmlspecialchars($recipe['image_url']) ?>"
+                            alt="<?= htmlspecialchars($recipe['name']) ?>"
+                            class="recipe-card-image">
+                    <?php else: ?>
+                        <div class="recipe-card-image image-placeholder"></div>
+                    <?php endif; ?>
+
                     <h2><?= htmlspecialchars($recipe['name']) ?></h2>
                     <div class="recipe-meta">
                         <span class="category"><?= htmlspecialchars($recipe['category']) ?></span>
@@ -43,6 +31,6 @@
             <?php endforeach; ?>
         </div>
     <?php else: ?>
-        <p class="no-results">No recipes found matching your criteria.</p>
+        <!-- ... (no results remains the same) ... -->
     <?php endif; ?>
 </div>

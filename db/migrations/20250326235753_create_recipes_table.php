@@ -1,45 +1,29 @@
 <?php
 
-declare(strict_types=1);
-
 use Phinx\Migration\AbstractMigration;
 
-final class CreateRecipesTable extends AbstractMigration
+class CreateRecipesTable extends AbstractMigration
 {
-    public function up(): void
+    public function change()
     {
-        if ($this->hasTable('recipes')) {
-            $this->table('recipes')->drop()->save();
-        }
-
-        // Disable Phinx's auto-id and define primary key explicitly
-        $table = $this->table('recipes', [
-            'id' => false,          // Disable auto-added 'id'
-            'primary_key' => ['id'] // Manually define 'id' as primary key
-        ]);
-
-        $table->addColumn('id', 'integer', [
-            'identity' => true,     // Auto-increment
-            'signed' => false,      // UNSIGNED
-            'null' => false
-        ])
+        $table = $this->table('recipes');
+        $table->addColumn('name', 'string', ['limit' => 255])
             ->addColumn('featured', 'boolean', [
                 'default' => false,
-                'null' => false // Add this line
-            ])
-            ->addColumn('description', 'text')
-            ->addColumn('name', 'string', ['limit' => 255])
+                'null' => false
+            ])  // Closing bracket for featured options
+            ->addColumn('description', 'text')  // Added missing description column
             ->addColumn('ingredients', 'text')
             ->addColumn('instructions', 'text')
-            ->addColumn('category', 'string', ['limit' => 255])
-            ->addColumn('created_at', 'timestamp', ['default' => 'CURRENT_TIMESTAMP'])
+            ->addColumn('category', 'string', ['limit' => 100])
+            ->addColumn('image_url', 'string', [
+                'limit' => 255,
+                'null' => true,
+                'default' => null,
+                'after' => 'description'
+            ])
+            ->addColumn('created_at', 'datetime')
+            ->addColumn('updated_at', 'datetime')
             ->create();
-    }
-
-    public function down(): void
-    {
-        if ($this->hasTable('recipes')) {
-            $this->table('recipes')->drop()->save();
-        }
     }
 }

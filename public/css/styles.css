@@ -606,3 +606,62 @@ button[type="submit"]:hover {
         padding: 1rem;
     }
 }
+
+/* IMAGE STYLES SYSTEM */
+.recipe-image {
+    border-radius: 12px;
+    object-fit: cover;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+}
+
+/* Recipe card images (grid view) */
+.recipe-card-image {
+    width: 100%;
+    height: 200px;
+    margin-bottom: 1rem;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+/* Recipe hero image (single view) */
+.recipe-hero-image {
+    width: 100%;
+    max-height: 400px;
+    margin: 1rem 0 2rem;
+}
+
+/* Instruction step images */
+.instruction-step-image {
+    width: 100%;
+    max-width: 600px;
+    height: auto;
+    margin: 1rem 0;
+}
+
+/* Image grid for multiple photos */
+.recipe-image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin: 2rem 0;
+}
+
+/* Fallback for missing images */
+.image-placeholder {
+    background: var(--light-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--dark-color);
+    font-style: italic;
+}
+
+.image-placeholder::before {
+    content: "📷 Recipe Image Coming Soon!";
+}
+
+.recipe-image:hover {
+    filter: brightness(1.02) saturate(1.1);
+    transform: scale(1.02);
+}

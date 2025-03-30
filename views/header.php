@@ -13,7 +13,6 @@
 </head>
 
 <body>
-    <!-- The content inside the body, like navigation, can be added here -->
     <header>
         <nav>
             <ul>
@@ -23,9 +22,3 @@
             </ul>
         </nav>
     </header>
-
-    <!-- Add to header.php temporarily -->
-    <?php
-    echo "<!-- DDEV URL: " . getenv('DDEV_PRIMARY_URL') . " -->\n";
-    echo "<!-- Stylesheet path: " . getenv('DDEV_PRIMARY_URL') . "/styles.css -->\n";
-    ?>

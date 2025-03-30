@@ -4,8 +4,17 @@
 
 <?php if (isset($viewData['recipe'])): ?>
     <div class="recipe-container">
+        <?php if (!empty($viewData['recipe']['image_url'])): ?>
+            <img src="<?= htmlspecialchars($viewData['recipe']['image_url']) ?>"
+                alt="<?= htmlspecialchars($viewData['recipe']['name']) ?>"
+                class="recipe-hero-image">
+        <?php else: ?>
+            <div class="recipe-hero-image image-placeholder"></div>
+        <?php endif; ?>
+
         <article>
             <h1><?= htmlspecialchars($viewData['recipe']['name']) ?></h1>
+
 
             <div class="recipe-meta">
                 <span class="category">

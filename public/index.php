@@ -128,7 +128,7 @@ try {
         try {
             $viewData['featuredRecipes'] = [];
             $stmt = $dbh->prepare("
-                SELECT id, name, description 
+                SELECT id, name, description, image_url 
                 FROM recipes 
                 WHERE featured = 1 
                 ORDER BY created_at DESC 
