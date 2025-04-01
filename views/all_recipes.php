@@ -1,15 +1,38 @@
 <div class="all-recipes-container">
     <h1>All Recipes</h1>
 
-    <!-- ... (search form remains the same) ... -->
+    <form method="GET" class="search-filter">
+        <input type="hidden" name="page" value="all_recipes">
 
+        <div class="search-group">
+            <input type="search" 
+                   name="search" 
+                   placeholder="Search recipes..."
+                   value="<?= htmlspecialchars($_GET['search'] ?? '') ?>"
+                   aria-label="Search recipes">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i> Search
+            </button>
+        </div>
+
+        <div class="filter-group">
+            <label for="category">Filter by Category:</label>
+            <select name="category" id="category">
+                <option value="">All Categories</option>
+                <?php foreach ($categories as $category): ?>
+                    <option value="<?= htmlspecialchars($category['category']) ?>"
+                        <?= isset($_GET['category']) && $_GET['category'] === $category['category'] ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($category['category']) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+    </form>
     <?php if (isset($viewData['error'])): ?>
-        <!-- ... (error message remains the same) ... -->
     <?php elseif (!empty($viewData['recipes'])): ?>
         <div class="recipe-grid">
             <?php foreach ($viewData['recipes'] as $recipe): ?>
                 <article class="recipe-card">
-                    <!-- Add image container here -->
                     <?php if (!empty($recipe['image_url'])): ?>
                         <img src="<?= htmlspecialchars($recipe['image_url']) ?>"
                             alt="<?= htmlspecialchars($recipe['name']) ?>"
