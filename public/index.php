@@ -2,177 +2,103 @@
 
 declare(strict_types=1);
 
-error_reporting(E_ALL);
-ini_set('display_errors', '1');
+// Start session before any output
+session_start();
 
-// ======================
-// Initial Setup
-// ======================
+// Enable error reporting
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ini_set('log_errors', 1);
+ini_set('error_log', '/var/www/html/php_error.log');
+
+error_log("Starting application...");
 
 // Load dependencies
 require_once __DIR__ . '/../vendor/autoload.php';
-require_once(__DIR__ . '/../config/Database.php');
 
 // Environment setup
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
 $dotenv->load();
 
-// Database connection
+error_log("Environment variables loaded");
+
+// Initialize core components
 try {
+    // Database connection
+    require_once(__DIR__ . '/../config/Database.php');
     $database = new Database();
     $dbh = $database->connect();
-} catch (PDOException $e) {
-    die("Database connection failed: " . $e->getMessage());
-}
+    
+    error_log("Database connection initialized");
 
-// ======================
-// Configuration
-// ======================
-const DEFAULT_PAGE = 'landing';
-const FEATURED_RECIPES_LIMIT = 6;
+    // CSRF Protection
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        error_log("New CSRF token generated");
+    }
 
-// ======================
-// Security Functions
-// ======================
-function sanitizeInput(string $input): string
-{
-    return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
-}
+    // Initialize Router
+    require_once(__DIR__ . '/../config/Router.php');
+    $router = new Router($dbh);
 
-// ======================
-// Routing & Logic
-// ======================
-$page = isset($_GET['page']) ? sanitizeInput($_GET['page']) : DEFAULT_PAGE;
-$title = "Welcome to Curfew Comforts";
-$viewData = [];
+    // Get the current URI
+    $uri = $_SERVER['REQUEST_URI'];
+    $method = $_SERVER['REQUEST_METHOD'];
 
-try {
-    // Handle Recipe Page
-    if ($page === 'recipe' && isset($_GET['id'])) {
-        require_once(__DIR__ . '/../controllers/RecipeController.php');
-        $controller = new RecipeController($dbh);
-        $recipeId = filter_var($_GET['id'], FILTER_VALIDATE_INT);
+    error_log("Processing request: $method $uri");
 
-        if (!$recipeId) {
-            throw new InvalidArgumentException("Invalid recipe ID");
+    // Handle the request
+    $result = $router->dispatch($uri, $method);
+
+    error_log("Request processed. View: " . $result['view']);
+    error_log("ViewData contents before view: " . print_r($result['viewData'] ?? [], true));
+    
+    // Send response
+    if (isset($result['status'])) {
+        http_response_code($result['status']);
+    }
+    
+    if (isset($result['headers'])) {
+        foreach ($result['headers'] as $header) {
+            header($header);
         }
-
-        // Handle Form Submissions
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if (isset($_POST['comment'])) {
-                $success = $controller->storeComment(
-                    $recipeId,
-                    [
-                        'user_name' => sanitizeInput($_POST['user_name'] ?? ''),
-                        'content' => sanitizeInput($_POST['content'] ?? '')
-                    ]
-                );
-                if ($success) {
-                    header("Location: ?page=recipe&id=$recipeId");
-                    exit;
-                }
-            } elseif (isset($_GET['action']) && $_GET['action'] === 'like_comment') {
-                if (isset($_POST['user_name'], $_GET['comment_id'])) {
-                    $commentId = filter_var($_GET['comment_id'], FILTER_VALIDATE_INT);
-                    $userName = sanitizeInput($_POST['user_name']);
-                    if ($commentId) {
-                        $controller->handleLike($commentId, $userName);
-                    }
-                }
-                header("Location: ?page=recipe&id=$recipeId");
-                exit;
-            }
-        }
-
-        // Fetch Recipe Data
-        $data = $controller->show($recipeId);
-        if (empty($data['recipe'])) {
-            $title = "Recipe Not Found";
+    }
+    
+    if (isset($result['view'])) {
+        // Extract view data
+        $viewData = $result['viewData'] ?? [];
+        error_log("ViewData extracted for view: " . print_r($viewData, true));
+        
+        // Include header
+        include('../views/header.php');
+        
+        // Include the view
+        $viewPath = __DIR__ . '/../views/' . $result['view'] . '.php';
+        if (file_exists($viewPath)) {
+            require $viewPath;
         } else {
-            $title = sanitizeInput($data['recipe']['name']);
-            $viewData = [
-                'recipe' => $data['recipe'],
-                'comments' => $data['comments']
-            ];
+            error_log("View not found: $viewPath");
+            http_response_code(404);
+            echo "404 - Page not found";
         }
+        
+        // Include footer
+        include('../views/footer.php');
+    } elseif (isset($result['json'])) {
+        header('Content-Type: application/json');
+        echo json_encode($result['json']);
     }
 
-    // Handle All Recipes Page
-    if ($page === 'all_recipes') {
-        $searchTerm = isset($_GET['search']) ? sanitizeInput($_GET['search']) : null;
-        $category = isset($_GET['category']) ? sanitizeInput($_GET['category']) : null;
-
-        $sql = "SELECT * FROM recipes";
-        $params = [];
-        $conditions = [];
-
-        if ($searchTerm) {
-            $conditions[] = "name LIKE :search";
-            $params[':search'] = "%$searchTerm%";
-        }
-        if ($category) {
-            $conditions[] = "category = :category";
-            $params[':category'] = $category;
-        }
-        if (!empty($conditions)) {
-            $sql .= " WHERE " . implode(" AND ", $conditions);
-        }
-
-        $stmt = $dbh->prepare($sql);
-        $stmt->execute($params);
-        $viewData['recipes'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    // Handle Landing Page
-    if ($page === 'landing') {
-        try {
-            $viewData['featuredRecipes'] = [];
-            $stmt = $dbh->prepare("
-                SELECT id, name, description, image_url 
-                FROM recipes 
-                WHERE featured = 1 
-                ORDER BY created_at DESC 
-                LIMIT :limit
-            ");
-            $stmt->bindValue(':limit', FEATURED_RECIPES_LIMIT, PDO::PARAM_INT);
-            $stmt->execute();
-            $viewData['featuredRecipes'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Featured recipes error: " . $e->getMessage());
-            $viewData['error'] = "Couldn't load featured recipes: " . $e->getMessage();
-        }
-    }
-
-    // Common Data
-    $categories = $dbh->query("SELECT DISTINCT category FROM recipes")
-        ->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     error_log("Database error: " . $e->getMessage());
-    $viewData['error'] = "A database error occurred";
+    error_log("Error trace: " . $e->getTraceAsString());
+    http_response_code(500);
+    $error = "Database error: " . $e->getMessage();
+    include('../views/error.php');
 } catch (Exception $e) {
     error_log("General error: " . $e->getMessage());
-    $viewData['error'] = "An unexpected error occurred";
+    error_log("Error trace: " . $e->getTraceAsString());
+    http_response_code(500);
+    $error = "An unexpected error occurred: " . $e->getMessage();
+    include('../views/error.php');
 }
-
-// ======================
-// View Rendering
-// ======================
-include('../views/header.php');
-
-switch ($page) {
-    case 'recipe':
-        isset($viewData['recipe']) ? include('../views/recipe.php') : include('../views/404.php');
-        break;
-    case 'all_recipes':
-        include('../views/all_recipes.php');
-        break;
-    case 'about':
-        include('../views/about.php');
-        break;
-    case 'landing':
-    default:
-        include('../views/landing.php');
-        break;
-}
-
-include('../views/footer.php');

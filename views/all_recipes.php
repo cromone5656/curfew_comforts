@@ -19,7 +19,7 @@
             <label for="category">Filter by Category:</label>
             <select name="category" id="category">
                 <option value="">All Categories</option>
-                <?php foreach ($categories as $category): ?>
+                <?php foreach ($viewData['categories'] as $category): ?>
                     <option value="<?= htmlspecialchars($category['category']) ?>"
                         <?= isset($_GET['category']) && $_GET['category'] === $category['category'] ? 'selected' : '' ?>>
                         <?= htmlspecialchars($category['category']) ?>
@@ -28,7 +28,11 @@
             </select>
         </div>
     </form>
+
     <?php if (isset($viewData['error'])): ?>
+        <div class="alert alert-danger" role="alert">
+            <?= htmlspecialchars($viewData['error']) ?>
+        </div>
     <?php elseif (!empty($viewData['recipes'])): ?>
         <div class="recipe-grid">
             <?php foreach ($viewData['recipes'] as $recipe): ?>
@@ -54,6 +58,11 @@
             <?php endforeach; ?>
         </div>
     <?php else: ?>
-        <!-- ... (no results remains the same) ... -->
+        <div class="no-results">
+            <p>No recipes found<?= isset($_GET['search']) ? ' matching "' . htmlspecialchars($_GET['search']) . '"' : '' ?>.</p>
+            <?php if (isset($_GET['search']) || isset($_GET['category'])): ?>
+                <a href="index.php?page=all_recipes" class="btn btn-primary">Clear Filters</a>
+            <?php endif; ?>
+        </div>
     <?php endif; ?>
 </div>
