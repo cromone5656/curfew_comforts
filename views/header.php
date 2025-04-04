@@ -42,177 +42,13 @@
     
     <!-- Remove no-js class -->
     <script>document.documentElement.classList.remove('no-js');</script>
-
-    <style>
-        .delete-button {
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 4px 8px;
-            font-size: 1.2em;
-            opacity: 0.7;
-            transition: opacity 0.2s;
-        }
-
-        .delete-button:hover {
-            opacity: 1;
-        }
-
-        .delete-form {
-            display: inline-block;
-            margin-left: 10px;
-        }
-
-        .auth-container {
-            max-width: 400px;
-            margin: 2rem auto;
-            padding: 2rem;
-            background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .auth-form {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .auth-form .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .auth-form label {
-            font-weight: 600;
-            color: #333;
-        }
-
-        .auth-form input {
-            padding: 0.75rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 1rem;
-        }
-
-        .auth-form button {
-            padding: 0.75rem;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .auth-form button:hover {
-            background: #0056b3;
-        }
-
-        .auth-links {
-            margin-top: 1rem;
-            text-align: center;
-            color: #666;
-        }
-
-        .auth-links a {
-            color: #007bff;
-            text-decoration: none;
-        }
-
-        .auth-links a:hover {
-            text-decoration: underline;
-        }
-
-        .success-message {
-            padding: 1rem;
-            margin: 1rem 0;
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-            border-radius: 4px;
-        }
-
-        .user-menu {
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .welcome-text {
-            color: #666;
-            font-size: 0.95rem;
-            font-weight: 500;
-        }
-
-        .logout-link {
-            color: #e74c3c;
-            text-decoration: none;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-size: 0.95rem;
-            background: rgba(231, 76, 60, 0.1);
-            border: 1px solid rgba(231, 76, 60, 0.2);
-            transition: all 0.2s ease;
-            white-space: nowrap;
-        }
-
-        .logout-link:hover {
-            background: rgba(231, 76, 60, 0.2);
-            transform: translateY(-1px);
-        }
-
-        nav {
-            padding: 1rem 2rem;
-            background: #fff;
-            border-bottom: 1px solid #eee;
-        }
-
-        nav ul {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            align-items: center;
-            gap: 2rem;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        nav ul li {
-            margin: 0;
-        }
-
-        nav ul li a {
-            text-decoration: none;
-            color: #333;
-            font-weight: 500;
-            padding: 0.5rem 0;
-            transition: color 0.2s ease;
-        }
-
-        nav ul li a:hover {
-            color: #e74c3c;
-        }
-
-        @media (max-width: 768px) {
-            nav ul {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 1rem;
-            }
-
-            .user-menu {
-                margin-left: 0;
-                margin-top: 1rem;
-                width: 100%;
-                justify-content: space-between;
-            }
-        }
-    </style>
+    
+    <noscript>
+        <style>
+            .hamburger { display: none !important; }
+            nav ul { display: flex !important; }
+        </style>
+    </noscript>
 </head>
 
 <body>
@@ -220,27 +56,30 @@
     
     <header role="banner">
         <nav role="navigation" aria-label="Main navigation">
-            <button class="mobile-menu-toggle" aria-expanded="false" aria-controls="main-menu" aria-label="Toggle menu">
-                <span class="sr-only">Menu</span>
-                <span class="hamburger"></span>
-            </button>
-            
-            <ul id="main-menu">
-                <li><a href="index.php?page=landing" <?= ($_GET['page'] ?? 'landing') === 'landing' ? 'aria-current="page"' : '' ?>>Home</a></li>
-                <li><a href="index.php?page=all_recipes" <?= ($_GET['page'] ?? '') === 'all_recipes' ? 'aria-current="page"' : '' ?>>All Recipes</a></li>
-                <li><a href="index.php?page=about" <?= ($_GET['page'] ?? '') === 'about' ? 'aria-current="page"' : '' ?>>About</a></li>
-                <?php if (isset($_SESSION['user_id'])): ?>
-                    <li class="user-menu">
-                        <span class="welcome-text">Welcome, <?= htmlspecialchars($_SESSION['username']) ?></span>
-                        <a href="index.php?page=logout" class="logout-link">Logout</a>
-                    </li>
-                <?php else: ?>
-                    <li class="user-menu">
-                        <a href="index.php?page=login">Login</a>
-                        <a href="index.php?page=register">Register</a>
-                    </li>
-                <?php endif; ?>
-            </ul>
+            <div class="container">
+                <div class="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                
+                <ul class="nav-menu">
+                    <li><a href="index.php?page=landing" <?= ($_GET['page'] ?? 'landing') === 'landing' ? 'aria-current="page"' : '' ?>>Home</a></li>
+                    <li><a href="index.php?page=all_recipes" <?= ($_GET['page'] ?? '') === 'all_recipes' ? 'aria-current="page"' : '' ?>>All Recipes</a></li>
+                    <li><a href="index.php?page=about" <?= ($_GET['page'] ?? '') === 'about' ? 'aria-current="page"' : '' ?>>About</a></li>
+                    <?php if (isset($_SESSION['user_id'])): ?>
+                        <li class="user-menu">
+                            <span class="welcome-text">Welcome, <?= htmlspecialchars($_SESSION['username']) ?></span>
+                            <a href="index.php?page=logout" class="logout-link">Logout</a>
+                        </li>
+                    <?php else: ?>
+                        <li class="user-menu">
+                            <a href="index.php?page=login">Login</a>
+                            <a href="index.php?page=register">Register</a>
+                        </li>
+                    <?php endif; ?>
+                </ul>
+            </div>
         </nav>
     </header>
 
