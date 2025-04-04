@@ -2,6 +2,7 @@
 // Ensure $viewData is available
 $viewData = $viewData ?? [];
 $featuredRecipes = $viewData['featuredRecipes'] ?? [];
+$recentRecipes = $viewData['recentRecipes'] ?? [];
 
 // Debug log
 error_log("Number of featured recipes in view: " . count($featuredRecipes));
@@ -27,41 +28,83 @@ if (!empty($featuredRecipes)) {
     </div>
   <?php endif; ?>
 
-  <div class="recipe-grid">
-    <?php if (!empty($featuredRecipes)): ?>
-      <?php foreach ($featuredRecipes as $recipe): ?>
-        <div class="recipe-card">
-          <?php if (!empty($recipe['image_url'])): ?>
-            <img src="<?= htmlspecialchars($recipe['image_url']) ?>"
-              alt="<?= htmlspecialchars($recipe['name']) ?>"
-              class="recipe-card-image">
-          <?php else: ?>
-            <div class="recipe-card-image image-placeholder"></div>
-          <?php endif; ?>
+  <section class="featured-section">
+    <h2>Featured Recipes</h2>
+    <div class="recipe-grid">
+      <?php if (!empty($featuredRecipes)): ?>
+        <?php foreach ($featuredRecipes as $recipe): ?>
+          <div class="recipe-card">
+            <?php if (!empty($recipe['image_url'])): ?>
+              <img src="<?= htmlspecialchars($recipe['image_url']) ?>"
+                alt="<?= htmlspecialchars($recipe['name']) ?>"
+                class="recipe-card-image">
+            <?php else: ?>
+              <div class="recipe-card-image image-placeholder"></div>
+            <?php endif; ?>
 
-          <h3><?= htmlspecialchars($recipe['name']) ?></h3>
-          <div class="recipe-meta">
-            <span class="category">
-              <?= htmlspecialchars($recipe['category'] ?? 'Uncategorized') ?>
-            </span>
-            <time>
-              <?= date('M Y', strtotime($recipe['created_at'] ?? 'now')) ?>
-            </time>
+            <h3><?= htmlspecialchars($recipe['name']) ?></h3>
+            <div class="recipe-meta">
+              <span class="category">
+                <?= htmlspecialchars($recipe['category'] ?? 'Uncategorized') ?>
+              </span>
+              <time>
+                <?= date('M Y', strtotime($recipe['created_at'] ?? 'now')) ?>
+              </time>
+            </div>
+            <p class="recipe-description">
+              <?= nl2br(htmlspecialchars(mb_substr($recipe['description'] ?? '', 0, 150) . '...')) ?>
+            </p>
+            <a href="index.php?page=recipe&id=<?= $recipe['id'] ?>" class="view-recipe">
+              View Recipe →
+            </a>
           </div>
-          <p class="recipe-description">
-            <?= nl2br(htmlspecialchars(mb_substr($recipe['description'] ?? '', 0, 150) . '...')) ?>
-          </p>
-          <a href="index.php?page=recipe&id=<?= $recipe['id'] ?>" class="view-recipe">
-            View Recipe →
-          </a>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <div class="no-recipes-message">
+          <p>No featured recipes available at the moment.</p>
         </div>
-      <?php endforeach; ?>
-    <?php else: ?>
-      <div class="no-recipes-message">
-        <p>No featured recipes available at the moment.</p>
-      </div>
-    <?php endif; ?>
-  </div>
+      <?php endif; ?>
+    </div>
+  </section>
+
+  <section class="recent-section">
+    <h2>Recently Added</h2>
+    <div class="recipe-grid">
+      <?php if (!empty($recentRecipes)): ?>
+        <?php foreach ($recentRecipes as $recipe): ?>
+          <div class="recipe-card">
+            <?php if (!empty($recipe['image_url'])): ?>
+              <img src="<?= htmlspecialchars($recipe['image_url']) ?>"
+                alt="<?= htmlspecialchars($recipe['name']) ?>"
+                class="recipe-card-image">
+            <?php else: ?>
+              <div class="recipe-card-image image-placeholder"></div>
+            <?php endif; ?>
+
+            <h3><?= htmlspecialchars($recipe['name']) ?></h3>
+            <div class="recipe-meta">
+              <span class="category">
+                <?= htmlspecialchars($recipe['category'] ?? 'Uncategorized') ?>
+              </span>
+              <time>
+                <?= date('M Y', strtotime($recipe['created_at'] ?? 'now')) ?>
+              </time>
+            </div>
+            <p class="recipe-description">
+              <?= nl2br(htmlspecialchars(mb_substr($recipe['description'] ?? '', 0, 150) . '...')) ?>
+            </p>
+            <a href="index.php?page=recipe&id=<?= $recipe['id'] ?>" class="view-recipe">
+              View Recipe →
+            </a>
+          </div>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <div class="no-recipes-message">
+          <p>No recent recipes available at the moment.</p>
+        </div>
+      <?php endif; ?>
+    </div>
+  </section>
 
   <div class="browse-section">
     <a href="index.php?page=all_recipes" class="browse-button">

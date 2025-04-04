@@ -41,14 +41,14 @@ if (isset($_POST['user_name']) && !empty($_POST['user_name'])) {
                 <section class="ingredients" aria-labelledby="ingredients-heading">
                     <h2 id="ingredients-heading">Ingredients</h2>
                     <div class="content" itemprop="recipeIngredient">
-                        <?= nl2br(htmlspecialchars($viewData['recipe']['ingredients'])) ?>
+                        <?= nl2br(htmlspecialchars($viewData['recipe']['ingredients'], ENT_QUOTES, 'UTF-8')) ?>
                     </div>
                 </section>
 
                 <section class="instructions" aria-labelledby="instructions-heading">
                     <h2 id="instructions-heading">Instructions</h2>
                     <div class="content" itemprop="recipeInstructions">
-                        <?= nl2br(htmlspecialchars($viewData['recipe']['instructions'])) ?>
+                        <?= nl2br(htmlspecialchars($viewData['recipe']['instructions'], ENT_QUOTES, 'UTF-8')) ?>
                     </div>
                 </section>
             </div>
@@ -134,141 +134,3 @@ if (isset($_POST['user_name']) && !empty($_POST['user_name'])) {
 <?php else: ?>
     <?php include('../views/404.php') ?>
 <?php endif; ?>
-
-<style>
-.recipe-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-}
-
-.recipe-content {
-    display: flex;
-    gap: 40px;
-    margin-bottom: 40px;
-}
-
-.recipe-image {
-    max-width: 500px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.recipe-details {
-    flex: 1;
-}
-
-.comments-section {
-    margin-top: 40px;
-}
-
-.comment-form {
-    margin-bottom: 30px;
-}
-
-.comment-form textarea {
-    width: 100%;
-    min-height: 100px;
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    margin-bottom: 10px;
-    font-family: inherit;
-}
-
-.comments-list {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.comment {
-    background: #f9f9f9;
-    padding: 15px;
-    border-radius: 8px;
-    border: 1px solid #eee;
-}
-
-.comment-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-}
-
-.comment-date {
-    color: #666;
-    font-size: 0.9em;
-}
-
-.comment-actions {
-    display: flex;
-    gap: 15px;
-    margin-top: 10px;
-    align-items: center;
-}
-
-.like-button, .like-count {
-    color: #666;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.like-button.liked {
-    color: #ff4b4b;
-}
-
-.delete-button {
-    background: none;
-    border: none;
-    color: #e74c3c;
-    cursor: pointer;
-    padding: 0.25rem 0.5rem;
-    font-size: 1.2rem;
-    border-radius: 4px;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(231, 76, 60, 0.1);
-    border: 1px solid rgba(231, 76, 60, 0.2);
-}
-
-.delete-button:hover {
-    background: rgba(231, 76, 60, 0.2);
-    transform: translateY(-1px);
-}
-
-.delete-icon {
-    font-weight: bold;
-    line-height: 1;
-}
-
-.login-prompt {
-    text-align: center;
-    padding: 20px;
-    background: #f5f5f5;
-    border-radius: 8px;
-    margin-bottom: 30px;
-}
-
-.login-prompt a {
-    color: #007bff;
-    text-decoration: none;
-}
-
-.login-prompt a:hover {
-    text-decoration: underline;
-}
-
-.error-message {
-    background: #ffe6e6;
-    color: #d63031;
-    padding: 12px;
-    border-radius: 4px;
-    margin-bottom: 20px;
-    border: 1px solid #ffb8b8;
-}
-</style>

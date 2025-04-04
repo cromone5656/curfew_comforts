@@ -24,7 +24,7 @@ class Auth
     {
         try {
             $stmt = $this->db->prepare("
-                SELECT id, password_hash
+                SELECT id, password_hash, is_admin
                 FROM users
                 WHERE username = :username
             ");
@@ -49,6 +49,7 @@ class Auth
 
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $username;
+            $_SESSION['is_admin'] = (bool)$user['is_admin'];
 
             return [
                 'success' => true,
@@ -70,9 +71,10 @@ class Auth
      * 
      * @param string $username Username
      * @param string $password Password
+     * @param bool $isAdmin Whether the user should be an admin (default false)
      * @return array{success: bool, user_id: int|null, message: string} Registration result
      */
-    public function register(string $username, string $password): array
+    public function register(string $username, string $password, bool $isAdmin = false): array
     {
         try {
             // Check if username already exists
@@ -91,13 +93,14 @@ class Auth
 
             // Insert new user
             $stmt = $this->db->prepare("
-                INSERT INTO users (username, password_hash)
-                VALUES (:username, :password_hash)
+                INSERT INTO users (username, password_hash, is_admin)
+                VALUES (:username, :password_hash, :is_admin)
             ");
 
             $success = $stmt->execute([
                 'username' => $username,
-                'password_hash' => password_hash($password, PASSWORD_DEFAULT)
+                'password_hash' => password_hash($password, PASSWORD_DEFAULT),
+                'is_admin' => $isAdmin
             ]);
 
             if (!$success) {
@@ -111,6 +114,7 @@ class Auth
             $userId = (int)$this->db->lastInsertId();
             $_SESSION['user_id'] = $userId;
             $_SESSION['username'] = $username;
+            $_SESSION['is_admin'] = $isAdmin;
 
             return [
                 'success' => true,
@@ -138,6 +142,16 @@ class Auth
     }
 
     /**
+     * Check if the current user is an admin
+     * 
+     * @return bool True if user is an admin
+     */
+    public function isAdmin(): bool
+    {
+        return isset($_SESSION['is_admin']) && $_SESSION['is_admin'] === true;
+    }
+
+    /**
      * Get current user's ID
      * 
      * @return int|null User ID if logged in, null otherwise
@@ -162,7 +176,7 @@ class Auth
      */
     public function logout(): void
     {
-        unset($_SESSION['user_id'], $_SESSION['username']);
+        unset($_SESSION['user_id'], $_SESSION['username'], $_SESSION['is_admin']);
         session_regenerate_id(true);
     }
 } 

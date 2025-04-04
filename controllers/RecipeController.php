@@ -282,22 +282,96 @@ class RecipeController
      * @return array Array of recipes
      * @throws PDOException If database query fails
      */
-    public function index(): array
+    public function index(string $category = null, string $search = null): array
     {
         try {
-            $stmt = $this->db->prepare("
+            $sql = "
                 SELECT 
                     r.*,
                     COUNT(DISTINCT c.id) as comment_count
                 FROM recipes r
                 LEFT JOIN comments c ON r.id = c.recipe_id
-                GROUP BY r.id
-                ORDER BY r.created_at DESC
-            ");
+            ";
+
+            $whereConditions = [];
+            $params = [];
+
+            if ($category) {
+                $whereConditions[] = "r.category = :category";
+                $params[':category'] = $category;
+            }
+
+            if ($search) {
+                $whereConditions[] = "(r.name LIKE :search OR r.description LIKE :search)";
+                $params[':search'] = "%$search%";
+            }
+
+            if (!empty($whereConditions)) {
+                $sql .= " WHERE " . implode(" AND ", $whereConditions);
+            }
+
+            $sql .= " GROUP BY r.id ORDER BY r.created_at DESC";
+
+            $stmt = $this->db->prepare($sql);
+            
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value);
+            }
+            
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Error fetching recipes: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Get recently added recipes
+     * 
+     * @param int $limit Number of recipes to return
+     * @return array Array of recent recipes
+     * @throws PDOException If database query fails
+     */
+    public function getRecentRecipes(int $limit = 6): array
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT * 
+                FROM recipes 
+                ORDER BY created_at DESC 
+                LIMIT :limit
+            ");
+            $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error fetching recent recipes: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Get unique categories from recipes
+     * 
+     * @return array Array of unique categories
+     * @throws PDOException If database query fails
+     */
+    public function getCategories(): array
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT DISTINCT category 
+                FROM recipes 
+                WHERE category IS NOT NULL 
+                AND category != ''
+                ORDER BY category ASC
+            ");
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error fetching categories: " . $e->getMessage());
             throw $e;
         }
     }

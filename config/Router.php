@@ -32,6 +32,10 @@ class Router
                 return ['view' => 'about'];
             case 'all_recipes':
                 return $this->handleAllRecipesPage($params);
+            case 'contact':
+                return $this->handleContactPage($method);
+            case 'admin':
+                return $this->handleAdminPage($params);
             case 'landing':
             default:
                 return $this->handleLandingPage();
@@ -182,11 +186,20 @@ class Router
     {
         require_once(__DIR__ . '/../controllers/RecipeController.php');
         $controller = new RecipeController($this->dbh);
-        $recipes = $controller->index();
+        
+        $category = isset($params['category']) ? $params['category'] : null;
+        $search = isset($params['search']) ? $params['search'] : null;
+        $recipes = $controller->index($category, $search);
+        $categories = $controller->getCategories();
 
         return [
             'view' => 'all_recipes',
-            'viewData' => ['recipes' => $recipes]
+            'viewData' => [
+                'recipes' => $recipes,
+                'categories' => $categories,
+                'search' => $search,
+                'category' => $category
+            ]
         ];
     }
 
@@ -195,41 +208,40 @@ class Router
         try {
             error_log("Handling landing page request");
 
+            // Get featured recipes
             $query = "SELECT id, name, description, image_url, category, created_at FROM recipes WHERE featured = 1";
             error_log("Executing featured recipes query: " . $query);
 
             $stmt = $this->dbh->prepare($query);
             $stmt->execute();
             $featuredRecipes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            error_log("Featured recipes fetched: " . count($featuredRecipes));
 
-            error_log("Found " . count($featuredRecipes) . " featured recipes");
-            foreach ($featuredRecipes as $recipe) {
-                error_log("Featured recipe: " . $recipe['name'] . " (ID: " . $recipe['id'] . ")");
-            }
+            // Get recent recipes
+            $recentQuery = "SELECT id, name, description, image_url, category, created_at FROM recipes ORDER BY created_at DESC LIMIT 6";
+            error_log("Executing recent recipes query: " . $recentQuery);
+
+            $stmt = $this->dbh->prepare($recentQuery);
+            $stmt->execute();
+            $recentRecipes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            error_log("Recent recipes fetched: " . count($recentRecipes));
 
             return [
-                'status' => 200,
                 'view' => 'landing',
                 'viewData' => [
-                    'featuredRecipes' => $featuredRecipes
+                    'featuredRecipes' => $featuredRecipes,
+                    'recentRecipes' => $recentRecipes
                 ]
             ];
         } catch (PDOException $e) {
-            error_log("Database error in handleLandingPage: " . $e->getMessage());
-            error_log("Error code: " . $e->getCode());
-            error_log("Error info: " . print_r($e->errorInfo, true));
+            error_log("Error in handleLandingPage: " . $e->getMessage());
             return [
-                'status' => 500,
-                'view' => 'error',
-                'viewData' => ['error' => 'Database error: ' . $e->getMessage()]
-            ];
-        } catch (Exception $e) {
-            error_log("General error in handleLandingPage: " . $e->getMessage());
-            error_log("Stack trace: " . $e->getTraceAsString());
-            return [
-                'status' => 500,
-                'view' => 'error',
-                'viewData' => ['error' => 'An unexpected error occurred']
+                'view' => 'landing',
+                'viewData' => [
+                    'error' => 'Error loading recipes. Please try again later.',
+                    'featuredRecipes' => [],
+                    'recentRecipes' => []
+                ]
             ];
         }
     }
@@ -254,34 +266,36 @@ class Router
 
     private function handleLoginPage(string $method): array
     {
-        require_once(__DIR__ . '/Auth.php');
-        $auth = new Auth($this->dbh);
+        require_once(__DIR__ . '/../controllers/AuthController.php');
+        $authController = new AuthController($this->dbh);
 
         if ($method === 'POST' && isset($_POST['login'])) {
             $this->validateCsrfToken($_POST['csrf_token'] ?? '');
 
-            $username = $this->sanitizeInput($_POST['username'] ?? '');
-            $password = $_POST['password'] ?? '';
-
-            if (empty($username) || empty($password)) {
-                return [
-                    'view' => 'login',
-                    'viewData' => ['error' => 'Username and password are required']
-                ];
+            $result = $authController->login($_POST);
+            
+            // If login was successful and we have a redirect
+            if (isset($result['status']) && $result['status'] === 302) {
+                return $result;
             }
-
-            $result = $auth->authenticate($username, $password);
-            if ($result['success']) {
+            
+            // If login was successful but no redirect specified
+            if (isset($result['success']) && $result['success']) {
+                // Redirect to admin page if user is admin
+                if (isset($_SESSION['is_admin']) && $_SESSION['is_admin']) {
+                    return [
+                        'status' => 302,
+                        'headers' => ['Location: /index.php?page=admin']
+                    ];
+                }
+                // Redirect to landing page for regular users
                 return [
                     'status' => 302,
-                    'headers' => ['Location: ?page=landing']
+                    'headers' => ['Location: /index.php?page=landing']
                 ];
             }
 
-            return [
-                'view' => 'login',
-                'viewData' => ['error' => $result['message']]
-            ];
+            return $result;
         }
 
         return ['view' => 'login'];
@@ -289,49 +303,10 @@ class Router
 
     private function handleRegisterPage(string $method): array
     {
-        require_once(__DIR__ . '/Auth.php');
-        $auth = new Auth($this->dbh);
-
-        if ($method === 'POST' && isset($_POST['register'])) {
-            $this->validateCsrfToken($_POST['csrf_token'] ?? '');
-
-            $username = $this->sanitizeInput($_POST['username'] ?? '');
-            $password = $_POST['password'] ?? '';
-            $confirmPassword = $_POST['confirm_password'] ?? '';
-
-            if (empty($username) || empty($password) || empty($confirmPassword)) {
-                return [
-                    'view' => 'register',
-                    'viewData' => ['error' => 'All fields are required']
-                ];
-            }
-
-            if ($password !== $confirmPassword) {
-                return [
-                    'view' => 'register',
-                    'viewData' => ['error' => 'Passwords do not match']
-                ];
-            }
-
-            if (strlen($password) < 8) {
-                return [
-                    'view' => 'register',
-                    'viewData' => ['error' => 'Password must be at least 8 characters long']
-                ];
-            }
-
-            $result = $auth->register($username, $password);
-            if ($result['success']) {
-                return [
-                    'status' => 302,
-                    'headers' => ['Location: ?page=landing']
-                ];
-            }
-
-            return [
-                'view' => 'register',
-                'viewData' => ['error' => $result['message']]
-            ];
+        if ($method === 'POST') {
+            require_once(__DIR__ . '/../controllers/AuthController.php');
+            $controller = new AuthController($this->dbh);
+            return $controller->register($_POST);
         }
 
         return ['view' => 'register'];
@@ -346,6 +321,125 @@ class Router
         return [
             'status' => 302,
             'headers' => ['Location: ?page=landing']
+        ];
+    }
+
+    private function handleContactPage(string $method): array
+    {
+        require_once(__DIR__ . '/../controllers/ContactController.php');
+        $controller = new ContactController($this->dbh);
+
+        if ($method === 'POST') {
+            $this->validateCsrfToken($_POST['csrf_token'] ?? '');
+
+            $result = $controller->submitRecipe($_POST);
+            
+            if ($result['success']) {
+                return [
+                    'view' => 'contact',
+                    'viewData' => [
+                        'success' => true
+                    ]
+                ];
+            }
+
+            return [
+                'view' => 'contact',
+                'viewData' => [
+                    'error' => $result['error'],
+                    'formData' => $_POST
+                ]
+            ];
+        }
+
+        return ['view' => 'contact'];
+    }
+
+    private function handleAdminPage(array $params = []): array
+    {
+        require_once(__DIR__ . '/../controllers/AdminController.php');
+        
+        // Check if user is logged in and is admin
+        if (!isset($_SESSION['user_id']) || !isset($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
+            return [
+                'view' => 'login',
+                'error' => 'Please log in as an admin to access this page.'
+            ];
+        }
+
+        $adminController = new AdminController($this->dbh);
+
+        // Handle POST requests
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+                return [
+                    'view' => 'admin/submissions',
+                    'viewData' => [
+                        'error' => 'Invalid CSRF token.'
+                    ]
+                ];
+            }
+
+            if (isset($_POST['action'])) {
+                switch ($_POST['action']) {
+                    case 'update_status':
+                        if (isset($_POST['submission_id']) && isset($_POST['status'])) {
+                            $success = $adminController->updateSubmissionStatus(
+                                (int)$_POST['submission_id'],
+                                $_POST['status']
+                            );
+                            return [
+                                'view' => 'admin/submissions',
+                                'viewData' => [
+                                    'submissions' => $adminController->getSubmissions(),
+                                    'success' => $success ? 'Status updated successfully.' : 'Failed to update status.'
+                                ]
+                            ];
+                        }
+                        break;
+
+                    case 'delete_comment':
+                        if (isset($_POST['comment_id'])) {
+                            $success = $adminController->deleteComment((int)$_POST['comment_id']);
+                            return [
+                                'view' => 'admin/comments',
+                                'viewData' => [
+                                    'comments' => $adminController->getComments(),
+                                    'success' => $success ? 'Comment deleted successfully.' : 'Failed to delete comment.'
+                                ]
+                            ];
+                        }
+                        break;
+                }
+            }
+        }
+
+        // Handle GET requests
+        if (isset($params['tab'])) {
+            switch ($params['tab']) {
+                case 'comments':
+                    return [
+                        'view' => 'admin/comments',
+                        'viewData' => [
+                            'comments' => $adminController->getComments()
+                        ]
+                    ];
+                default:
+                    return [
+                        'view' => 'admin/submissions',
+                        'viewData' => [
+                            'submissions' => $adminController->getSubmissions()
+                        ]
+                    ];
+            }
+        }
+
+        // Default view
+        return [
+            'view' => 'admin/submissions',
+            'viewData' => [
+                'submissions' => $adminController->getSubmissions()
+            ]
         ];
     }
 } 

@@ -53,7 +53,7 @@ try {
     error_log("Request processed. View: " . $result['view']);
     error_log("ViewData contents before view: " . print_r($result['viewData'] ?? [], true));
     
-    // Send response
+    // Send response headers before any output
     if (isset($result['status'])) {
         http_response_code($result['status']);
     }
@@ -62,6 +62,12 @@ try {
         foreach ($result['headers'] as $header) {
             header($header);
         }
+    }
+    
+    if (isset($result['json'])) {
+        header('Content-Type: application/json');
+        echo json_encode($result['json']);
+        exit;
     }
     
     if (isset($result['view'])) {
@@ -78,15 +84,11 @@ try {
             require $viewPath;
         } else {
             error_log("View not found: $viewPath");
-            http_response_code(404);
             echo "404 - Page not found";
         }
         
         // Include footer
         include('../views/footer.php');
-    } elseif (isset($result['json'])) {
-        header('Content-Type: application/json');
-        echo json_encode($result['json']);
     }
 
 } catch (PDOException $e) {
